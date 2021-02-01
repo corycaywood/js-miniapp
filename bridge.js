@@ -55,7 +55,7 @@ var MiniAppBridge = /** @class */ (function () {
     };
     /**
      * Associating requestPermission function to MiniAppBridge object.
-     * @param {DevicePermission} permissionType Type of permission that is requested. For eg., location
+     * @param {DevicePermission} permissionType Type of permission that is requested e.g. location
      */
     MiniAppBridge.prototype.requestPermission = function (permissionType) {
         var _this = this;
@@ -77,7 +77,7 @@ var MiniAppBridge = /** @class */ (function () {
      * Associating loadInterstitialAd function to MiniAppBridge object.
      * This function preloads interstitial ad before they are requested for display.
      * Can be called multiple times to pre-load multiple ads.
-     * @param {string} id ad unit id of the intertitial ad that needs to be loaded.
+     * @param {string} id ad unit id of the interstitial ad that needs to be loaded.
      */
     MiniAppBridge.prototype.loadInterstitialAd = function (id) {
         var _this = this;
@@ -150,7 +150,7 @@ var MiniAppBridge = /** @class */ (function () {
     };
     /**
      * Associating getProfilePhoto function to MiniAppBridge object.
-     * This function returns username from the user profile
+     * This function returns username from the user profile.
      * (provided the rakuten.miniapp.user.PROFILE_PHOTO is allowed by the user)
      * It returns error info if user had denied the custom permission
      */
@@ -158,6 +158,18 @@ var MiniAppBridge = /** @class */ (function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             return _this.executor.exec('getProfilePhoto', null, function (profilePhoto) { return resolve(profilePhoto); }, function (error) { return reject(error); });
+        });
+    };
+    /**
+     * Associating getContacts function to MiniAppBridge object.
+     * This function returns contact list from the user profile.
+     * (provided the rakuten.miniapp.user.CONTACT_LIST is allowed by the user)
+     * It returns error info if user had denied the custom permission
+     */
+    MiniAppBridge.prototype.getContacts = function () {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            return _this.executor.exec('getContacts', null, function (contacts) { return resolve(JSON.parse(contacts)); }, function (error) { return reject(error); });
         });
     };
     /**
@@ -182,13 +194,25 @@ var MiniAppBridge = /** @class */ (function () {
             return _this.executor.exec('setScreenOrientation', { action: screenAction }, function (success) { return resolve(success); }, function (error) { return reject(error); });
         });
     };
+    /**
+     * @param message The message to send to contact.
+     * @returns Promise resolves with the Unique ID which was sent the message.
+     * Can also resolve with empty (undefined) response in the case that the message was not sent to a contact, such as if the user cancelled sending the message.
+     * Promise rejects in the case that there was an error.
+     */
+    MiniAppBridge.prototype.sendMessageToContact = function (message) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            return _this.executor.exec('sendMessageToContact', { messageToContact: message }, function (messageId) { return resolve(messageId); }, function (error) { return reject(error); });
+        });
+    };
     return MiniAppBridge;
 }());
 exports.MiniAppBridge = MiniAppBridge;
 /**
- * Method to remove the callback object from the message queue after successfull/error communication
+ * Method to remove the callback object from the message queue after successful/error communication
  * with the native application
- * @param  {[Object]} queueObj Queue Object that holds the references of callback informations
+ * @param  {[Object]} queueObj Queue Object that holds the references of callback information
  *
  * @internal
  */
@@ -212,10 +236,10 @@ var GeolocationPositionError = {
     POSITION_UNAVAILABLE: 2,
     TIMEOUT: 3,
 };
-var IOSExcecutor = /** @class */ (function () {
-    function IOSExcecutor() {
+var IOSExecutor = /** @class */ (function () {
+    function IOSExecutor() {
     }
-    IOSExcecutor.prototype.exec = function (action, param, onSuccess, onError) {
+    IOSExecutor.prototype.exec = function (action, param, onSuccess, onError) {
         var callback = {};
         callback.onSuccess = onSuccess;
         callback.onError = onError;
@@ -223,15 +247,15 @@ var IOSExcecutor = /** @class */ (function () {
         common_bridge_1.mabMessageQueue.unshift(callback);
         window.webkit.messageHandlers.MiniAppiOS.postMessage(JSON.stringify({ action: action, param: param, id: callback.id }));
     };
-    IOSExcecutor.prototype.getPlatform = function () {
+    IOSExecutor.prototype.getPlatform = function () {
         return platform_1.Platform.IOS;
     };
-    return IOSExcecutor;
+    return IOSExecutor;
 }());
-var iOSExcecutor = new IOSExcecutor();
-window.MiniAppBridge = new common_bridge_1.MiniAppBridge(iOSExcecutor);
+var iOSExecutor = new IOSExecutor();
+window.MiniAppBridge = new common_bridge_1.MiniAppBridge(iOSExecutor);
 navigator.geolocation.getCurrentPosition = function (success, error, options) {
-    return iOSExcecutor.exec('getCurrentPosition', { locationOptions: options }, function (value) {
+    return iOSExecutor.exec('getCurrentPosition', { locationOptions: options }, function (value) {
         try {
             var parsedData = JSON.parse(value);
             success(parsedData);
